@@ -1,9 +1,6 @@
 name: Publish to Docker Hub
 
-on:
-  push:
-    tags:
-      - '*'
+on: workflow_dispatch
 
 permissions:
   contents: read
@@ -15,42 +12,35 @@ jobs:
       - 
         name: Checkout repository
         uses: actions/checkout@v4
-      - 
-        name: Extract build args from Dockerfile
-        id: vars
+        with:
+          fetch-depth: 0   # Required to fetch tags
+      - name: Get latest tag
+        id: get_version
         run: |
-          ALPINE_VERSION=$(grep -m1 '^ARG ALPINE_VERSION' Dockerfile | cut -d'"' -f2)
-          PYPY_VERSION=$(grep -m1 '^ARG PYPY_VERSION' Dockerfile | cut -d'"' -f2)
-          PYPY_RELEASE=$(grep -m1 '^ARG PYPY_RELEASE' Dockerfile | cut -d'"' -f2)
-
-          echo "alpine=$ALPINE_VERSION" >> $GITHUB_OUTPUT
-          echo "pypy=$PYPY_VERSION" >> $GITHUB_OUTPUT
-          echo "release=$PYPY_RELEASE" >> $GITHUB_OUTPUT
-
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "Latest tag: $latest_tag"
+          echo "BUILD_VERSION=$latest_tag" >> $GITHUB_ENV
       -
         name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - 
         name: Build and push images
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ vars.BUILD_PLATFORM }}
           push: true
-          tags: ${{ vars.DOCKERHUB_USERNAME }}/pypy${{ steps.vars.outputs.pypy }}r${{ steps.vars.outputs.release }}-alpine${{ steps.vars.outputs.alpine }}
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/pypy:b${{ env.BUILD_VERSION }}-v${{ vars.PYPY_VERSION }}-r${{ vars.PYPY_RELEASE }}-alpine${{ vars.ALPINE_VERSION }}
           build-args: |
-            ALPINE_VERSION=${{ steps.vars.outputs.alpine }}
-            PYPY_VERSION=${{ steps.vars.outputs.pypy }}
-            PYPY_RELEASE=${{ steps.vars.outputs.release }}
+            ALPINE_VERSION=${{ vars.ALPINE_VERSION }}
+            PYPY_VERSION=${{ vars.PYPY_VERSION }}
+            PYPY_RELEASE=${{ vars.PYPY_RELEASE }}
