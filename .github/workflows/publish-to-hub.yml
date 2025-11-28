@@ -1,0 +1,56 @@
+name: Publish to Docker Hub
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - 
+        name: Checkout repository
+        uses: actions/checkout@v4
+
+      - 
+        name: Extract build args from Dockerfile
+        id: vars
+        run: |
+          ALPINE_VERSION=$(grep -m1 '^ARG ALPINE_VERSION' Dockerfile | cut -d'"' -f2)
+          PYPY_VERSION=$(grep -m1 '^ARG PYPY_VERSION' Dockerfile | cut -d'"' -f2)
+          PYPY_RELEASE=$(grep -m1 '^ARG PYPY_RELEASE' Dockerfile | cut -d'"' -f2)
+
+          echo "alpine=$ALPINE_VERSION" >> $GITHUB_OUTPUT
+          echo "pypy=$PYPY_VERSION" >> $GITHUB_OUTPUT
+          echo "release=$PYPY_RELEASE" >> $GITHUB_OUTPUT
+
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - 
+        name: Build and push images
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/pypy${{ steps.vars.outputs.pypy }}r${{ steps.vars.outputs.release }}-alpine${{ steps.vars.outputs.alpine }}
+          build-args: |
+            ALPINE_VERSION=${{ steps.vars.outputs.alpine }}
+            PYPY_VERSION=${{ steps.vars.outputs.pypy }}
+            PYPY_RELEASE=${{ steps.vars.outputs.release }}
