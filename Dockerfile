@@ -52,7 +52,7 @@ COPY --from=build /pypy/dist/pypy /opt/pypy
 ENV PATH="/opt/pypy/bin:$PATH"
 
 RUN --mount=type=cache,sharing=locked,target=/root/.cache/pip \
-    ln /opt/pypy/bin/pypy${PYPY_VERSION} /usr/local/bin/python && \
+    ln -s /opt/pypy/bin/pypy${PYPY_VERSION} /usr/local/bin/python && \
     python -m ensurepip && \
     python -m pip install -U pip setuptools wheel cffi
 
