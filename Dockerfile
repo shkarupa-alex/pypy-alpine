@@ -43,8 +43,9 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apk \
     apk update && \
     apk add curl \ 
             libgcc \ 
-            libffi pkgconf zlib bzip2 expat libunwind \
-            sqlite openssl ncurses gdbm tk xz
+            libffi pkgconf \
+            zlib libbz2 libexpat libunwind \
+            sqlite-libs libssl3 ncurses-libs gdbm tk-lib xz-libs
 
 COPY --from=build /pypy/dist/pypy /opt/pypy
 
