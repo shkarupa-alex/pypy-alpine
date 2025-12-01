@@ -27,7 +27,7 @@ RUN cd pypy && \
     git checkout release-pypy${PYPY_VERSION}-v${PYPY_RELEASE} && \
     cd pypy/goal && \
     pypy ../../rpython/bin/rpython --opt=jit && \
-    PYTHONPATH=../.. ./pypy${PYPY_VERSION}-c ../../pypy/tool/release/package.py --builddir ../../dist --archive-name=pypy
+    PYTHONPATH=../.. ./pypy${PYPY_VERSION}-c ../../pypy/tool/release/package.py --make-portable --builddir ../../dist --archive-name=pypy
 
 
 FROM ghcr.io/astral-sh/uv:alpine${ALPINE_VERSION}
